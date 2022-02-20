@@ -4,6 +4,7 @@ export default createStore({
   state: {
     loader: false,
     contract: {} as any,
+    parasContract: {} as any,
     walletConnection: {} as any,
     tokenSeries: [] as any,
     baseEquipment: {
@@ -25,6 +26,9 @@ export default createStore({
     },
     setContract(state, data) {
       state.contract = data;
+    },
+    setParasContract(state, data) {
+      state.parasContract = data;
     },
     setWalletConnection(state, data) {
       state.walletConnection = data;

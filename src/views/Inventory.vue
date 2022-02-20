@@ -26,11 +26,11 @@
         <div class="nfts">
           <div
             class="nft"
-            v-for="(nft, index) in tokenSeries" :key="index"
-            :class="{nftDisabled: isEquiped(nft[0])}"
-            @click="!isEquiped(nft[0]) && changeEquipment(parsedExtra(nft[1]?.metadata?.extra)?.type, nft[0])"
+            v-for="(nft, index) in nfts" :key="index"
+            :class="{nftDisabled: isEquiped(nft.token_id)}"
+            @click="!isEquiped(nft[0]) && changeEquipment(parsedExtra(nft.token_id).type, nft.token_id)"
           >
-            <img :src="`https://ipfs.fleek.co/ipfs/${nft[1].metadata.media}`" alt="">
+            <img :src="`https://ipfs.fleek.co/ipfs/${nft.metadata.media}`" alt="">
             <!-- {{parsedExtra(nft[1]?.metadata?.extra)?.type}} -->
           </div>
         </div>
@@ -95,6 +95,9 @@ export default defineComponent({
     contract() {
       return store.state.contract;
     },
+    parasContract() {
+      return store.state.parasContract;
+    },
     changedEquip(): boolean {
       return JSON.stringify(this.equipment) === JSON.stringify(this.baseEquipment);
     },
@@ -114,7 +117,7 @@ export default defineComponent({
       this.equipment = newEquip;
     },
     isEquiped(token_series_id: any) {
-      return Object.values(this.equipment).some((s: any) => s?.split(':')[0] === token_series_id.toString());
+      return Object.values(this.equipment).some((s: any) => s === token_series_id);
     },
     countStats() {
       const newWarriorObj: any = {
@@ -133,7 +136,7 @@ export default defineComponent({
           const token: any = this.tokenSeries.find((s: any) => s[0] === token_series_id);
           if (token) {
             const extra = token[1]?.metadata?.extra;
-            const parsedExtra = this.parsedExtra(extra);
+            const parsedExtra = this.parsedExtra(token_series_id);
             Object.keys(parsedExtra).forEach((key: any) => {
               if (key !== 'type') {
                 newWarriorObj[key.toLowerCase()] = parseInt(newWarriorObj[key.toLowerCase()]) + parseInt(parsedExtra[key.toLowerCase()]);
@@ -145,9 +148,10 @@ export default defineComponent({
       newWarriorObj.health = newWarriorObj.stamina * 10;
       this.warrior = newWarriorObj;
     },
-    parsedExtra(extra: string) {
+    parsedExtra(token_id: string) {
+      const token = this.tokenSeries.find((s: any) => s[0] === token_id.split(':')[0]);
       const obj: any = {};
-      const arr = extra.split(',');
+      const arr = token[1].metadata.extra.split(',');
       arr.forEach((a: any) => {
         const prop = a.split(':');
         obj[prop[0]] = prop[1];
@@ -156,21 +160,23 @@ export default defineComponent({
       return obj;
     },
     async getCollectibilities() {
-      const nfts = await axios.get('https://api-v2-testnet-master.paras.id/token', {
-        params: {
-          owner_id: this.walletConnection?._authData?.accountId,
-          __skip: 0,
-          limit: 100,
-        }
+      // const nfts = await axios.get('https://api-v2-testnet-master.paras.id/token', {
+      //   params: {
+      //     owner_id: this.walletConnection?._authData?.accountId,
+      //     __skip: 0,
+      //     limit: 100,
+      //   }
+      // });
+      const nfts = await this.parasContract.nft_tokens_for_owner({
+        account_id: this.walletConnection?._authData?.accountId,
       });
 
-      const results = nfts?.data?.data?.results;
-      if (results) {
+      if (nfts) {
         const tokenSeries = await this.contract.get_token_series({
           from_index: 0,
           limit: 200,
         });
-        this.nfts = results.filter(((re: any) => this.tokenSeries.find((s: any) => s[0] === re.token_series_id)));
+        this.nfts = nfts.filter(((re: any) => tokenSeries.find((s: any) => s[0] === re.token_id.split(':')[0])));
         this.getEquipment();
       }
     },
@@ -185,14 +191,14 @@ export default defineComponent({
         ...this.equipment,
       };
       if (type !== 'weapon') {
-        eqObj[type] = `${token_series_id}:1`;
+        eqObj[type] = token_series_id;
       } else {
         if (eqObj.weapon_1 === null) {
-          eqObj.weapon_1 = `${token_series_id}:1`;
+          eqObj.weapon_1 = token_series_id;
         } else if (eqObj.weapon_2 === null) {
-          eqObj.weapon_2 = `${token_series_id}:1`;
+          eqObj.weapon_2 = token_series_id;
         } else {
-          eqObj.weapon_1 = `${token_series_id}:1`;
+          eqObj.weapon_1 = token_series_id;
         }
       }
       this.equipment = eqObj;

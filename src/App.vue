@@ -40,6 +40,13 @@ export default defineComponent({
       await this.getEquipment();
       await this.getTokenSeries();
     },
+    async initParasContract() {
+      const parasContract = await new nearAPI.Contract(this.walletConnection.account(), 'paras-token-v2.testnet', {
+        viewMethods: ['nft_tokens_for_owner'],
+        changeMethods: [],
+      });
+      store.commit('setParasContract', parasContract);
+    },
     async connectToWallet() {
       this.walletConnection = new nearAPI.WalletConnection(this.near, null);
       store.commit('setWalletConnection', this.walletConnection);
@@ -54,6 +61,7 @@ export default defineComponent({
         // getAccountId() will return empty string if user is still unauthorized
         // sender: this.walletConnection.getAccountId()
       });
+      await this.initParasContract();
       store.commit('setContract', this.contract);
     },
     async signIn() {
