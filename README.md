@@ -1,4 +1,4 @@
-# hackaton
+# DeFight frontend
 
 ## Project setup
 ```
